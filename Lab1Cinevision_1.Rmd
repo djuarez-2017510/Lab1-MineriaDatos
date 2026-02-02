@@ -1,0 +1,194 @@
+---
+title: "Laboratorio Analisis Exploratorio"
+author: "Dilary Cruz, Alexander de la Cruz, Daniel Juárez"
+date: "2026-02-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(nortest)
+```
+
+```{r}
+movies <- read.csv("movies_2026.csv", header = TRUE)
+```
+
+#  PUNTO 1 
+
+### Dimensiones del conjunto de datos
+dim(ms)
+
+El conjunto de datos contiene 19,883 observaciones (películas) y 28 variables.
+
+### Estructura de los datos
+str(ms)
+
+El dataset incluye variables cuantitativas y cualitativas, relacionadas con presupuesto, ingresos, duración, popularidad, género, elenco y características de producción.
+
+### Resumen estadístico general
+summary(ms)
+
+El resumen estadístico permite observar medidas descriptivas de las variables cuantitativas, así como la presencia de valores cero en variables financieras y de votación, lo cual indica que no todas las películas cuentan con esta información disponible.
+
+### Valores faltantes
+colSums(is.na(ms))
+
+Se identificó que algunas variables no cuentan con información completa para todas las películas, lo cual es común en conjuntos de datos reales y deberá considerarse en análisis posteriores.
+
+### Vista preliminar del conjunto de datos
+head(ms)
+
+Las primeras filas permiten verificar que los datos fueron cargados correctamente y observar la estructura general de las variables.
+
+### Tabla 
+
+```{r}
+tabla_resumen <- data.frame(
+  Caracteristica = c(
+    "Número de observaciones",
+    "Número de variables",
+    "Variables cuantitativas",
+    "Variables cualitativas",
+    "Valores faltantes"
+  ),
+  Descripcion = c(
+    "19,883 películas",
+    "28 variables",
+    "budget, revenue, runtime, popularity, voteAvg, voteCount, genresAmount, productionCoAmount, productionCountriesAmount, actorsAmount, castWomenAmount, castMenAmount, releaseYear",
+    "genres, homePage, productionCompany, productionCompanyCountry, productionCountry, director, actors, actorsPopularity, actorsCharacter, originalTitle, title, originalLanguage, releaseDate",
+    "Algunas películas no cuentan con información completa en todas las variables"
+  )
+)
+```
+```{r}
+knitr::kable(
+  tabla_resumen,
+  caption = "Resumen general del conjunto de datos"
+)
+```
+
+El conjunto de datos analizado contiene 19,883 películas y 28 variables. Dentro de las variables cuantitativas se incluye el campo id, el cual se utiliza únicamente como identificador de cada película y no como una variable de análisis. El dataset también contiene variables cuantitativas relacionadas con presupuesto, ingresos, duración y calificaciones, así como variables cualitativas que describen características como género, idioma, país de producción y elenco. Esta exploración permitió obtener una visión general de la estructura del conjunto de datos.
+
+
+
+#  PUNTO 2 
+
+```{r}
+tabla_tipos <- data.frame(
+  Variable = names(movies),
+  Tipo_R = sapply(movies, class),
+  Tipo_Variable = c(
+    "Cualitativa nominal",      # id
+    "Cuantitativa continua",    # popularity
+    "Cuantitativa continua",    # budget
+    "Cuantitativa continua",    # revenue
+    "Cualitativa nominal",      # originalTitle
+    "Cualitativa nominal",      # originalLanguage
+    "Cualitativa nominal",      # title
+    "Cualitativa nominal",      # homePage
+    "Cualitativa nominal",      # video
+    "Cualitativa nominal",      # director
+    "Cuantitativa continua",    # runtime
+    "Cualitativa nominal",      # genres
+    "Cuantitativa discreta",    # genresAmount
+    "Cualitativa nominal",      # productionCompany
+    "Cuantitativa discreta",    # productionCoAmount
+    "Cualitativa nominal",      # productionCompanyCountry
+    "Cualitativa nominal",      # productionCountry
+    "Cuantitativa discreta",    # productionCountriesAmount
+    "Cualitativa ordinal",      # releaseDate 
+    "Cuantitativa discreta",    # voteCount
+    "Cuantitativa continua",    # voteAvg
+    "Cualitativa nominal",      # actors
+    "Cuantitativa continua",    # actorsPopularity
+    "Cualitativa nominal",      # actorsCharacter
+    "Cuantitativa discreta",    # actorsAmount
+    "Cuantitativa discreta",    # castWomenAmount
+    "Cuantitativa discreta",    # castMenAmount
+    "Cuantitativa discreta"     # releaseYear
+  )
+)
+
+```
+
+```{r}
+knitr::kable(
+  tabla_tipos[, c("Variable", "Tipo_Variable")], 
+  caption = "Clasificación de las variables del conjunto de datos",
+  align = "l"
+)
+```
+
+
+#  PUNTO 3
+
+
+```{r parte-3-completa, message=FALSE, warning=FALSE, fig.height=4, fig.width=6}
+# =========================
+# Librerías
+# =========================
+
+
+
+# =========================
+# Variables cuantitativas
+# =========================
+vars_cuant <- names(movies)[sapply(movies, is.numeric)]
+
+# Se excluye 'id' porque es un identificador y no una variable de análisis
+vars_cuant <- vars_cuant[vars_cuant != "id"]
+
+vars_cuant
+
+# =========================
+# Normalidad: Lilliefors
+# =========================
+for (v in vars_cuant) {
+  
+  x <- movies[[v]]
+  x <- x[!is.na(x)]
+  
+  hist(
+    x,
+    breaks = 20,
+    main = paste("Histograma de", v),
+    xlab = v
+  )
+  
+  prueba_lillie <- lillie.test(x)
+  
+  cat("\nVariable:", v, "\n")
+  print(prueba_lillie)
+}
+
+# =========================
+# Variables cualitativas
+# =========================
+vars_cual <- names(movies)[sapply(movies, function(x) 
+  is.character(x) || is.factor(x) || is.logical(x)
+)]
+
+vars_cual
+
+# =========================
+# Tablas de frecuencia
+# =========================
+
+
+# =========================
+# Nota metodológica
+# =========================
+# actorsPopularity es cuantitativa continua.
+# video es cualitativa nominal binaria (TRUE / FALSE).
+
+```
+
+
+### Repositorio
+
+https://github.com/djuarez-2017510/Lab1-MineriaDatos 
+
+
+
