@@ -7,10 +7,15 @@ output:
   word_document: default
 ---
 
+### Repositorio
+
+<https://github.com/djuarez-2017510/Lab1-MineriaDatos>
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 
 library(nortest)
+options(scipen = 999)
 ```
 
 ```{r}
@@ -187,7 +192,6 @@ for (v in names(vars_cuant_lista)) {
 
 library(tidyverse)
 
-# Función modificada: Tabla con TODOS los datos, Gráfico solo TOP 10
 analizar_cualitativa <- function(datos, columna, titulo) {
   
   # 1. Separar los valores por la barra vertical "|"
@@ -196,25 +200,28 @@ analizar_cualitativa <- function(datos, columna, titulo) {
     separate_rows(all_of(columna), sep = "\\|") %>%
     filter(!is.na(!!sym(columna)) & !!sym(columna) != "")
   
-  # 2. Crear tabla de frecuencia con TODOS los datos (sin head)
+  # 2. Crear tabla de frecuencia con TODOS los datos
   tabla_completa <- df_temp %>%
     count(!!sym(columna), sort = TRUE)
   
   # 3. Imprimir la tabla COMPLETA en el reporte
-  # Nota: Si son muchos datos, generará una tabla muy larga.
   print(knitr::kable(tabla_completa, caption = paste("Frecuencia Completa -", titulo)))
   
-  # 4. Preparar datos para el gráfico (Solo Top 10 para que sea legible)
+  # 4. Preparar datos para el gráfico
   tabla_top10 <- head(tabla_completa, 10)
   
   # 5. Generar gráfico con el Top 10
-  p <- ggplot(tabla_top10, aes(x = reorder(!!sym(columna), n), y = n)) +
-    geom_bar(stat = "identity", fill = "steelblue") +
-    coord_flip() + 
-    labs(title = paste(titulo, "(Top 10)"), x = "Categoría", y = "Frecuencia") +
-    theme_minimal()
+  par(mar = c(5, 10, 4, 2)) 
   
-  print(p)
+  barplot(
+    height = rev(tabla_top10$n), # rev() es para que el más alto salga arriba
+    names.arg = rev(tabla_top10[[columna]]), 
+    horiz = TRUE,               # Lo hacemos horizontal para que se lean los nombres
+    las = 1,                    # Etiquetas horizontales
+    col = "steelblue",          # El color que te gusta
+    main = paste(titulo, "(Top 10)"),
+    xlab = "Frecuencia"
+  )
 }
 
 # =========================
@@ -246,12 +253,10 @@ tabla_video <- table(movies$video)
 print(knitr::kable(as.data.frame(tabla_video), caption = "Frecuencia: ¿Tiene Video?"))
 
 
-
-# =========================
 # Nota metodológica
 # =========================
 # actorsPopularity es cuantitativa continua.
-# video es cualitativa nominal binaria (TRUE / FALSE).
+# video es cualitativa nominal
 
 ```
 
@@ -375,12 +380,12 @@ genero_predominante <- movies %>%
 head(genero_predominante)
 
 barplot(
-  top_generos$n,
-  names.arg = top_generos$genero_principal,
+  genero_predominante$n,
+  names.arg = genero_predominante$genero_principal,
   horiz = TRUE,
   las = 1,
-  main = "Generos principales mas frecuentes",
-  xlab = "Cantidad de peliculas"
+  main = "Géneros principales más frecuentes",
+  xlab = "Cantidad de películas"
 )
 
 
@@ -401,7 +406,135 @@ head(genero_mas_largo)
 ```
 
 
+*7. ¿Las películas de qué género principal obtuvieron mayores ganancias?*
 
-### Repositorio
+```{r}
+# 1. Calculamos la ganancia y definimos el objeto
+movies$ganancia <- movies$revenue - movies$budget
 
-<https://github.com/djuarez-2017510/Lab1-MineriaDatos>
+ganancia_genero <- movies |>
+  dplyr::filter(!is.na(ganancia), !is.na(genero_principal)) |>
+  dplyr::group_by(genero_principal) |>
+  dplyr::summarise(ganancia_total = sum(ganancia)) |>
+  dplyr::arrange(desc(ganancia_total))
+
+# 2. Ajustar márgenes para que no se corte nada
+# Aumentamos el margen de abajo (10) y el de la izquierda (10)
+par(mar = c(10, 10, 4, 2)) 
+
+# 3. Escalar los datos a Millones para que el eje Y sea legible
+ganancia_millones <- head(ganancia_genero$ganancia_total, 10) / 1000000
+nombres_generos <- head(ganancia_genero$genero_principal, 10)
+
+# 4. Generar el gráfico
+barplot(
+  height = ganancia_millones,
+  names.arg = nombres_generos,
+  las = 2,                  # Nombres en vertical para que quepan
+  col = "darkgreen",
+  main = "Top 10 Géneros con más Ganancias",
+  ylab = "Ganancia (Millones de $)",
+  cex.names = 0.8,          # Letra un poco más pequeña para los nombres
+  cex.axis = 0.8            # Letra un poco más pequeña para los números
+)
+```
+
+
+
+*8. ¿La cantidad de actores influye en los ingresos de las películas? ¿Se han hecho películas con más actores en los últimos años?*
+
+```{r}
+# Influencia en ingresos
+plot(
+  movies$actorsAmount, 
+  movies$revenue, 
+  main = "Cantidad de Actores vs Ingresos",
+  xlab = "Número de Actores", 
+  ylab = "Ingresos",
+  pch = 19, col = rgb(0,0,1,0.2)
+)
+
+# Tendencia por años
+actores_anio <- movies |>
+  dplyr::group_by(releaseYear) |>
+  dplyr::summarise(promedio_actores = mean(actorsAmount, na.rm = TRUE))
+
+plot(
+  actores_anio$releaseYear, 
+  actores_anio$promedio_actores, 
+  type = "l", 
+  col = "red",
+  main = "Evolución del tamaño del elenco por año",
+  xlab = "Año", ylab = "Promedio de Actores"
+)
+```
+
+
+Al ver que la correlación es casi nula no damos cuenta que llenar la película de actores no garantiza vender más entradas. Para el estudio, lo más inteligente es invertir en talento clave en lugar de gastar en repartos masivos que solo inflan los costos de producción sin aportar un valor real a la taquilla.
+
+
+
+
+*9. ¿Es posible que la cantidad de hombres y mujeres en el reparto influya en la popularidad y los ingresos?*
+```{r}
+# Correlaciones simples para ver influencia
+cor_mujeres_pop <- cor(movies$castWomenAmount, movies$popularity, use = "complete.obs")
+cor_hombres_pop <- cor(movies$castMenAmount, movies$popularity, use = "complete.obs")
+
+cor_mujeres_rev <- cor(movies$castWomenAmount, movies$revenue, use = "complete.obs")
+cor_hombres_rev <- cor(movies$castMenAmount, movies$revenue, use = "complete.obs")
+
+# Crear una pequeña matriz de resultados
+resultados_genero <- data.frame(
+  Variable = c("Mujeres vs Popularidad", "Hombres vs Popularidad", "Mujeres vs Ingresos", "Hombres vs Ingresos"),
+  Correlacion = c(cor_mujeres_pop, cor_hombres_pop, cor_mujeres_rev, cor_hombres_rev)
+)
+resultados_genero
+```
+
+
+Se ve que repartos más equilibrados suelen tener mayor popularidad entre el público. Para CineVision, promover la diversidad no es solo un tema de imagen, sino una estrategia de negocio muy acertada para conectar con una audiencia mucho más amplia y moderna.
+
+
+
+*10. ¿Quiénes son los directores que hicieron las 20 películas mejor calificadas?*
+```{r}
+directores_top <- movies |>
+  dplyr::filter(voteCount > 100) |> # Filtro para que la calificación sea representativa
+  dplyr::arrange(desc(voteAvg)) |>
+  dplyr::select(director, title, voteAvg) |>
+  dplyr::slice(1:20)
+
+directores_top
+```
+
+
+
+*11. ¿Cómo se correlacionan los presupuestos con los ingresos? ¿Los altos presupuestos significan altos ingresos?*
+```{r}
+# Histograma del presupuesto
+hist(
+  movies$budget, 
+  breaks = 30, 
+  col = "lightblue", 
+  main = "Distribución de Presupuestos",
+  xlab = "Presupuesto"
+)
+
+# Diagrama de dispersión
+plot(
+  movies$budget, 
+  movies$revenue, 
+  main = "Presupuesto vs Ingresos",
+  xlab = "Presupuesto", 
+  ylab = "Ingresos",
+  pch = 16, col = rgb(0,0.5,0,0.3)
+)
+abline(lm(revenue ~ budget, data = movies), col = "red") # Línea de tendencia
+```
+
+
+
+La gráfica confirma que el presupuesto ayuda, pero no es una garantía absoluta de éxito. He visto casos de películas carísimas que fracasaron, así que el estudio no debe confiarse solo del dinero; cada proyecto necesita una buena historia para que la inversión millonaria realmente valga la pena.
+
+
