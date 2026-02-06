@@ -251,6 +251,7 @@ print(knitr::kable(as.data.frame(tabla_video), caption = "Frecuencia: ¿Tiene Vi
 
 ```
 
+#PREGUNTAS
 
 
 
