@@ -131,23 +131,29 @@ knitr::kable(
 # =========================
 
 
-
 # =========================
 # Variables cuantitativas
 # =========================
+#Limppiar actorsPopularity
+pop_lista <- strsplit(movies$actorsPopularity, "\\|")
+actors_pop <- as.numeric(unlist(pop_lista))
+actors_pop <- actors_pop[!is.na(actors_pop)]
+
+#14 variables cuantitativas
 vars_cuant <- names(movies)[sapply(movies, is.numeric)]
-
-# Se excluye 'id' porque es un identificador y no una variable de análisis
 vars_cuant <- vars_cuant[vars_cuant != "id"]
-
-vars_cuant
+vars_cuant_lista <- lapply(vars_cuant, function(v) movies[[v]])
+names(vars_cuant_lista) <- vars_cuant
+vars_cuant_lista[["actorsPopularity"]] <- actors_pop
 
 # =========================
 # Normalidad: Lilliefors
 # =========================
-for (v in vars_cuant) {
+
+
+for (v in names(vars_cuant_lista)) {
   
-  x <- movies[[v]]
+  x <- vars_cuant_lista[[v]]
   x <- x[!is.na(x)]
   
   hist(
@@ -161,20 +167,80 @@ for (v in vars_cuant) {
   
   cat("\nVariable:", v, "\n")
   print(prueba_lillie)
+  
+  # Interpretación automática
+  if (prueba_lillie$p.value >= 0.05) {
+    cat("➡ La variable", v, "PODRÍA seguir una distribución normal.\n")
+  } else {
+    cat("➡ La variable", v, "NO sigue una distribución normal.\n")
+  }
+}
+
+
+# =========================
+# VARIABLES CUALITATIVAS (Tablas Completas y Gráficos Top 10)
+# =========================
+
+library(tidyverse)
+
+# Función modificada: Tabla con TODOS los datos, Gráfico solo TOP 10
+analizar_cualitativa <- function(datos, columna, titulo) {
+  
+  # 1. Separar los valores por la barra vertical "|"
+  df_temp <- datos %>%
+    select(all_of(columna)) %>%
+    separate_rows(all_of(columna), sep = "\\|") %>%
+    filter(!is.na(!!sym(columna)) & !!sym(columna) != "")
+  
+  # 2. Crear tabla de frecuencia con TODOS los datos (sin head)
+  tabla_completa <- df_temp %>%
+    count(!!sym(columna), sort = TRUE)
+  
+  # 3. Imprimir la tabla COMPLETA en el reporte
+  # Nota: Si son muchos datos, generará una tabla muy larga.
+  print(knitr::kable(tabla_completa, caption = paste("Frecuencia Completa -", titulo)))
+  
+  # 4. Preparar datos para el gráfico (Solo Top 10 para que sea legible)
+  tabla_top10 <- head(tabla_completa, 10)
+  
+  # 5. Generar gráfico con el Top 10
+  p <- ggplot(tabla_top10, aes(x = reorder(!!sym(columna), n), y = n)) +
+    geom_bar(stat = "identity", fill = "steelblue") +
+    coord_flip() + 
+    labs(title = paste(titulo, "(Top 10)"), x = "Categoría", y = "Frecuencia") +
+    theme_minimal()
+  
+  print(p)
 }
 
 # =========================
-# Variables cualitativas
+# CORRECCIÓN DE ENCODING (Importante para evitar el error UTF-8)
 # =========================
-vars_cual <- names(movies)[sapply(movies, function(x) 
-  is.character(x) || is.factor(x) || is.logical(x)
-)]
 
-vars_cual
+# Forzamos la codificación a UTF-8 para evitar errores con caracteres extraños
+# Esto reemplaza caracteres ilegibles con su código de byte
+movies$productionCompany <- iconv(movies$productionCompany, from = "", to = "UTF-8", sub = "byte")
+movies$originalTitle <- iconv(movies$originalTitle, from = "", to = "UTF-8", sub = "byte")
+movies$title <- iconv(movies$title, from = "", to = "UTF-8", sub = "byte")
 
-# =========================
-# Tablas de frecuencia
-# =========================
+# --- Ejecución del análisis ---
+
+# 1. Géneros
+analizar_cualitativa(movies, "genres", "Géneros")
+
+# 2. Idioma Original
+analizar_cualitativa(movies, "originalLanguage", "Idioma Original")
+
+# 3. Países de Producción
+analizar_cualitativa(movies, "productionCountry", "Países Productores")
+
+# 4. Compañías Productoras (Ahora funcionará porque limpiamos la columna arriba)
+analizar_cualitativa(movies, "productionCompany", "Compañías Productoras")
+
+# 5. Video Promocional
+tabla_video <- table(movies$video)
+print(knitr::kable(as.data.frame(tabla_video), caption = "Frecuencia: ¿Tiene Video?"))
+
 
 
 # =========================
@@ -184,6 +250,8 @@ vars_cual
 # video es cualitativa nominal binaria (TRUE / FALSE).
 
 ```
+
+
 
 
 ### Repositorio
