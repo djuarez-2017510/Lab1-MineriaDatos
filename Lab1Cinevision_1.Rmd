@@ -2,7 +2,9 @@
 title: "Laboratorio Analisis Exploratorio"
 author: "Dilary Cruz, Alexander de la Cruz, Daniel Juárez"
 date: "2026-02-02"
-output: html_document
+output:
+  html_document: default
+  word_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -15,34 +17,39 @@ library(nortest)
 movies <- read.csv("movies_2026.csv", header = TRUE)
 ```
 
-#  PUNTO 1 
+# PUNTO 1
 
 ### Dimensiones del conjunto de datos
+
 dim(ms)
 
 El conjunto de datos contiene 19,883 observaciones (películas) y 28 variables.
 
 ### Estructura de los datos
+
 str(ms)
 
 El dataset incluye variables cuantitativas y cualitativas, relacionadas con presupuesto, ingresos, duración, popularidad, género, elenco y características de producción.
 
 ### Resumen estadístico general
+
 summary(ms)
 
 El resumen estadístico permite observar medidas descriptivas de las variables cuantitativas, así como la presencia de valores cero en variables financieras y de votación, lo cual indica que no todas las películas cuentan con esta información disponible.
 
 ### Valores faltantes
+
 colSums(is.na(ms))
 
 Se identificó que algunas variables no cuentan con información completa para todas las películas, lo cual es común en conjuntos de datos reales y deberá considerarse en análisis posteriores.
 
 ### Vista preliminar del conjunto de datos
+
 head(ms)
 
 Las primeras filas permiten verificar que los datos fueron cargados correctamente y observar la estructura general de las variables.
 
-### Tabla 
+### Tabla
 
 ```{r}
 tabla_resumen <- data.frame(
@@ -62,6 +69,7 @@ tabla_resumen <- data.frame(
   )
 )
 ```
+
 ```{r}
 knitr::kable(
   tabla_resumen,
@@ -71,9 +79,7 @@ knitr::kable(
 
 El conjunto de datos analizado contiene 19,883 películas y 28 variables. Dentro de las variables cuantitativas se incluye el campo id, el cual se utiliza únicamente como identificador de cada película y no como una variable de análisis. El dataset también contiene variables cuantitativas relacionadas con presupuesto, ingresos, duración y calificaciones, así como variables cualitativas que describen características como género, idioma, país de producción y elenco. Esta exploración permitió obtener una visión general de la estructura del conjunto de datos.
 
-
-
-#  PUNTO 2 
+# PUNTO 2
 
 ```{r}
 tabla_tipos <- data.frame(
@@ -121,9 +127,7 @@ knitr::kable(
 )
 ```
 
-
-#  PUNTO 3
-
+# PUNTO 3
 
 ```{r parte-3-completa, message=FALSE, warning=FALSE, fig.height=4, fig.width=6}
 # =========================
@@ -251,13 +255,153 @@ print(knitr::kable(as.data.frame(tabla_video), caption = "Frecuencia: ¿Tiene Vi
 
 ```
 
-#PREGUNTAS
+### PREGUNTAS
+
+*1. ¿Cuáles son las 10 películas que contaron con más presupuesto?*
+
+```{r}
+top_budget <- movies |>
+  dplyr::filter(!is.na(budget)) |>
+  dplyr::arrange(desc(budget)) |>
+  dplyr::select(title, budget) |>
+  dplyr::slice(1:10)
+
+top_budget
+```
+
+*2. ¿Cuáles son las 10 películas que más ingresos tuvieron?*
+
+```{r}
+top_revenue <- movies |>
+  dplyr::filter(!is.na(revenue)) |>
+  dplyr::arrange(desc(revenue)) |>
+  dplyr::select(title, revenue) |>
+  dplyr::slice(1:10)
+
+top_revenue
+
+```
+
+*3. ¿Cuál es la película que más votos tuvo?*
+
+```{r}
+mas_votos <- movies |>
+  dplyr::filter(!is.na(voteCount)) |>
+  dplyr::arrange(desc(voteCount)) |>
+  dplyr::select(title, voteCount) |>
+  dplyr::slice(1)
+
+mas_votos
+
+```
+
+*4. ¿Cuál es la peor película de acuerdo a los votos de todos los usuarios?*
+
+```{r}
+peor_pelicula <- movies |>
+  dplyr::filter(!is.na(voteAvg), voteCount > 50) |>
+  dplyr::arrange(voteAvg) |>
+  dplyr::select(title, voteAvg, voteCount) |>
+  dplyr::slice(1)
+
+peor_pelicula
+
+```
+
+*5. ¿Cuántas películas se hicieron en cada año?*
+
+```{r}
+peliculas_por_anio <- movies |>
+  dplyr::filter(!is.na(releaseYear)) |>
+  dplyr::count(releaseYear)
+
+peliculas_por_anio
+
+```
+
+*a. ¿En qué año se hicieron más películas?*
+```{r}
+anio_mas_peliculas <- peliculas_por_anio |>
+  dplyr::arrange(desc(n)) |>
+  dplyr::slice(1)
+
+anio_mas_peliculas
+
+barplot(
+  peliculas_por_anio$n,
+  names.arg = peliculas_por_anio$releaseYear,
+  las = 2,
+  col = "steelblue",
+  main = "Cantidad de películas por año",
+  xlab = "Año",
+  ylab = "Cantidad de películas"
+)
+
+```
+
+
+
+
+*6. ¿Cuál es el género principal de las 20 películas más recientes?*
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+movies <- movies %>%
+  mutate(
+    genero_principal = sapply(strsplit(genres, "\\|"), `[`, 1)
+  )
+
+
+top20_recientes <- movies %>%
+  arrange(desc(releaseYear)) %>%
+  slice(1:20) %>%
+  count(genero_principal, sort = TRUE)
+
+top20_recientes
+
+```
+
+
+*a. ¿Cuál es el género principal que predomina en el conjunto de datos? *
+
+```{r}
+
+genero_predominante <- movies %>%
+  count(genero_principal, sort = TRUE)
+
+head(genero_predominante)
+
+barplot(
+  top_generos$n,
+  names.arg = top_generos$genero_principal,
+  horiz = TRUE,
+  las = 1,
+  main = "Generos principales mas frecuentes",
+  xlab = "Cantidad de peliculas"
+)
+
+
+
+```
+
+*b. ¿A qué género principal pertenecen las películas más largas? *
+
+```{r}
+genero_mas_largo <- movies %>%
+  filter(!is.na(runtime)) %>%
+  group_by(genero_principal) %>%
+  summarise(duracion_promedio = mean(runtime)) %>%
+  arrange(desc(duracion_promedio))
+
+head(genero_mas_largo)
+
+```
 
 
 
 ### Repositorio
 
-https://github.com/djuarez-2017510/Lab1-MineriaDatos 
-
-
-
+<https://github.com/djuarez-2017510/Lab1-MineriaDatos>
