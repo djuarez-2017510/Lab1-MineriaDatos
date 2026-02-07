@@ -538,3 +538,246 @@ abline(lm(revenue ~ budget, data = movies), col = "red") # Línea de tendencia
 La gráfica confirma que el presupuesto ayuda, pero no es una garantía absoluta de éxito. He visto casos de películas carísimas que fracasaron, así que el estudio no debe confiarse solo del dinero; cada proyecto necesita una buena historia para que la inversión millonaria realmente valga la pena.
 
 
+*12. ¿Se asocian ciertos meses de lanzamiento con mejores ingresos?*
+
+```{r}
+# Convertir releaseDate a formato fecha
+movies$releaseDate <- as.Date(movies$releaseDate)
+
+# Extraer el mes de lanzamiento
+movies$releaseMonth <- format(movies$releaseDate, "%m")
+
+# Filtrar películas con ingresos válidos
+movies_month <- subset(movies, !is.na(releaseMonth) & revenue > 0)
+
+# Calcular ingresos promedio por mes
+ingresos_por_mes <- aggregate(
+  revenue ~ releaseMonth,
+  data = movies_month,
+  FUN = mean
+)
+
+# Convertir meses a factor con nombres
+ingresos_por_mes$releaseMonth <- factor(
+  ingresos_por_mes$releaseMonth,
+  levels = sprintf("%02d", 1:12),
+  labels = c("Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+             "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre")
+)
+
+# Gráfico de barras
+par(mar = c(8, 5, 4, 2))
+
+# grid
+plot.new()
+plot.window(
+  xlim = c(0, length(ingresos_por_mes$revenue) + 1),
+  ylim = c(0, max(ingresos_por_mes$revenue))
+)
+grid(nx = NA, ny = NULL, col = "gray85", lty = "dotted")
+
+# gráfica
+barplot(
+  ingresos_por_mes$revenue,
+  names.arg = ingresos_por_mes$releaseMonth,
+  las = 2,
+  col = "#9BD3E8",
+  border = "steelblue4",
+  add = TRUE
+  
+)
+
+```
+
+
+
+Los resultados muestran que los ingresos promedio de las películas presentan variaciones según el mes de lanzamiento, lo que sugiere que el momento del estreno puede estar asociado con el desempeño económico. Se observa que ciertos meses registran ingresos promedio más altos que otros, lo cual podría estar relacionado con temporadas vacacionales o periodos de mayor asistencia a las salas de cine. No obstante, aunque el mes de estreno parece influir en los ingresos, este factor por sí solo no garantiza el éxito comercial de una película, ya que intervienen otros elementos como el contenido, el elenco y la estrategia de marketing.
+
+
+
+
+*13. ¿En qué meses se han visto los lanzamientos con mejores ingresos? ¿cuantas películas, en promedio, se han lanzado por mes? *
+
+```{r}
+# Asegurarse de que releaseDate sea fecha
+movies$releaseDate <- as.Date(movies$releaseDate)
+
+# Extraer mes de lanzamiento
+movies$releaseMonth <- format(movies$releaseDate, "%m")
+
+# --- PARTE 1: Ingresos promedio por mes ---
+
+# Filtrar películas con ingresos válidos
+movies_ingresos <- subset(movies, !is.na(releaseMonth) & revenue > 0)
+
+# Ingresos promedio por mes
+ingresos_mes <- aggregate(
+  revenue ~ releaseMonth,
+  data = movies_ingresos,
+  FUN = mean
+)
+
+# --- PARTE 2: Cantidad promedio de películas por mes ---
+
+# Contar cuántas películas se lanzaron por mes
+conteo_mes <- table(movies$releaseMonth)
+
+# Promedio de películas lanzadas por mes
+promedio_lanzamientos <- mean(conteo_mes, na.rm = TRUE)
+
+# Convertir meses a nombres
+ingresos_mes$releaseMonth <- factor(
+  ingresos_mes$releaseMonth,
+  levels = sprintf("%02d", 1:12),
+  labels = c("Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+             "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre")
+)
+
+# Gráfico de ingresos promedio por mes
+barplot(
+  ingresos_mes$revenue,
+  names.arg = ingresos_mes$releaseMonth,
+  las = 2,
+  col = "lightblue",
+  main = "Ingresos promedio por mes de lanzamiento",
+  ylab = "Ingresos promedio",
+  xlab = "Mes"
+)
+
+# Mostrar promedio de películas lanzadas por mes
+promedio_lanzamientos
+```
+
+
+
+A partir del análisis realizado, se observa que los ingresos promedio de las películas varían según el mes de lanzamiento, lo que sugiere que el momento del estreno puede estar asociado con el desempeño económico, aunque no sea el único factor que influye en el éxito comercial. Asimismo, el cálculo de la cantidad promedio de películas lanzadas por mes permite identificar cómo se distribuyen los estrenos a lo largo del año, evidenciando que estos no se concentran de manera uniforme y que podrían responder a estrategias de mercado o a temporadas específicas de mayor demanda.
+
+
+
+
+*14.¿Cómo se correlacionan las calificaciones con el éxito comercial?*
+
+```{r}
+# Filtrar películas con calificaciones e ingresos válidos
+movies_14 <- subset(movies, voteAvg > 0 & revenue > 0)
+
+# Diagrama de dispersión: calificación vs ingresos
+plot(
+  movies_14$voteAvg,
+  movies_14$revenue,
+  main = "Calificación promedio vs Ingresos",
+  xlab = "Calificación promedio (voteAvg)",
+  ylab = "Ingresos",
+  pch = 16,
+  col = rgb(0, 0, 1, 0.3)
+)
+
+# Línea de tendencia
+abline(lm(revenue ~ voteAvg, data = movies_14), col = "red")
+
+# Coeficiente de correlación
+cor(movies_14$voteAvg, movies_14$revenue)
+
+```
+
+
+
+
+El análisis de la relación entre las calificaciones promedio de las películas y sus ingresos muestra la existencia de una asociación entre ambas variables, aunque esta no es necesariamente fuerte. El diagrama de dispersión y la línea de tendencia permiten observar que películas con mejores calificaciones tienden, en algunos casos, a obtener mayores ingresos, pero también existen películas con buenas calificaciones que no alcanzan un alto éxito comercial. Entonces, si bien la valoración del público puede influir en el desempeño económico, el éxito comercial de una película depende de múltiples factores adicionales como el presupuesto, la estrategia de marketing, el género y el momento de lanzamiento.
+
+
+
+*15. ¿Qué estrategias de marketing, como videos promocionales o páginas oficiales, generan mejores resultados?*
+
+```{r}
+# Filtrar películas con ingresos válidos
+movies_15 <- subset(movies, revenue > 0)
+
+# Crear variable: tiene página oficial o no
+movies_15$tieneHomePage <- movies_15$homePage != ""
+
+# Ingresos promedio según existencia de video promocional
+ingresos_video <- aggregate(
+  revenue ~ video,
+  data = movies_15,
+  FUN = mean
+)
+
+# Ingresos promedio según existencia de página oficial
+ingresos_homepage <- aggregate(
+  revenue ~ tieneHomePage,
+  data = movies_15,
+  FUN = mean
+)
+
+# Gráfico: ingresos promedio según video promocional
+barplot(
+  ingresos_video$revenue,
+  names.arg = ingresos_video$video,
+  col = "lightblue",
+  main = "Ingresos promedio según existencia de video promocional",
+  ylab = "Ingresos promedio",
+  xlab = "Tiene video promocional"
+)
+
+# Gráfico: ingresos promedio según página oficial
+barplot(
+  ingresos_homepage$revenue,
+  names.arg = ingresos_homepage$tieneHomePage,
+  col = "lightgreen",
+  main = "Ingresos promedio según existencia de página oficial",
+  ylab = "Ingresos promedio",
+  xlab = "Tiene página oficial"
+)
+```
+
+
+
+
+
+
+El análisis de las estrategias de marketing muestra diferencias en los ingresos promedio de las películas según la existencia de videos promocionales y páginas oficiales. Los resultados sugieren que las películas que cuentan con estos elementos tienden a presentar un mejor desempeño comercial en comparación con aquellas que no los tienen. Sin embargo, estas estrategias por sí solas no garantizan el éxito económico, ya que los ingresos también dependen de otros factores como el presupuesto, la popularidad del elenco y el contenido de la película. Aun así, la presencia de herramientas de promoción parece estar asociada con mayores ingresos promedio.
+
+
+
+
+
+
+*16.¿La popularidad del elenco está directamente correlacionada con el éxito de taquilla?*
+
+```{r}
+# Filtrar películas con ingresos y popularidad del elenco válida
+movies_16 <- subset(movies, revenue > 0 & actorsPopularity != "")
+
+# Calcular la popularidad promedio del elenco por película
+movies_16$avgActorsPopularity <- sapply(
+  strsplit(movies_16$actorsPopularity, "\\|"),
+  function(x) mean(suppressWarnings(as.numeric(x)), na.rm = TRUE)
+)
+
+# Eliminar valores NA resultantes
+movies_16 <- subset(movies_16, !is.na(avgActorsPopularity))
+
+# Diagrama de dispersión: popularidad del elenco vs ingresos
+plot(
+  movies_16$avgActorsPopularity,
+  movies_16$revenue,
+  main = "Popularidad promedio del elenco vs Ingresos",
+  xlab = "Popularidad promedio del elenco",
+  ylab = "Ingresos",
+  pch = 16,
+  col = rgb(1, 0, 0, 0.3)
+)
+
+# Línea de tendencia
+abline(lm(revenue ~ avgActorsPopularity, data = movies_16), col = "blue")
+
+# Coeficiente de correlación
+cor(movies_16$avgActorsPopularity, movies_16$revenue)
+```
+
+
+
+
+
+El análisis muestra que existe una relación entre la popularidad promedio del elenco y los ingresos de las películas, aunque esta no es necesariamente fuerte ni directa. Si bien algunas películas con elencos más populares tienden a obtener mayores ingresos, también se observan numerosas excepciones, lo que indica que la popularidad del elenco puede influir en el éxito de taquilla, pero no es el único factor determinante.
