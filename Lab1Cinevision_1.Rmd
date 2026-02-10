@@ -3,9 +3,12 @@ title: "Laboratorio Analisis Exploratorio"
 author: "Dilary Cruz, Alexander de la Cruz, Daniel Juárez"
 date: "2026-02-02"
 output:
-  html_document: default
+  pdf_document:
+    latex_engine: xelatex
   word_document: default
+  html_document: default
 ---
+
 
 ### Repositorio
 
@@ -179,9 +182,9 @@ for (v in names(vars_cuant_lista)) {
   
   # Interpretación automática
   if (prueba_lillie$p.value >= 0.05) {
-    cat("➡ La variable", v, "PODRÍA seguir una distribución normal.\n")
+    cat(" La variable", v, "PODRÍA seguir una distribución normal.\n")
   } else {
-    cat("➡ La variable", v, "NO sigue una distribución normal.\n")
+    cat(" La variable", v, "NO sigue una distribución normal.\n")
   }
 }
 
